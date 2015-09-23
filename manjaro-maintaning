@@ -1,0 +1,143 @@
+1. In order to display a name a track playing in Clementine interprocess info exange protocol,
+   called *dbus* is used. API to this protocol provided by Python module python-dbus,
+   ($> sudo pacman -S python-dbus). The following script
+
+   #!/usr/bin/env python
+   import dbus
+
+   # Clementine lives on the Session bus
+   session_bus = dbus.SessionBus()
+
+   # Get Clementine's player object, and then get an interface from that object,
+   # otherwise we'd have to type out the full interface name on every method call.
+   player = session_bus.get_object('org.mpris.clementine', '/Player')
+   iface = dbus.Interface(player, dbus_interface='org.freedesktop.MediaPlayer')
+
+   # Call a method on the interface
+   metadata = iface.GetMetadata()
+   print ("♬ > " + (metadata["artist"])  + " - " + (metadata["title"]))
+
+   must be executed from .conkyrc, like this "full_text":"${exec python /home/romanjoe/.config/Clementine/dbus-conlrol.py}",
+
+############################################################################################################################
+
+2. I use ALSA, so it is needed to install package $> sudo pacman -S manjaro-alsa alsa-utils alsa-plugins.
+   Successful audio setup has came after providing below script to /etc/asound.conf.
+   Reboot, then test with $> speaker-test -c 2
+
+   pcm.!default {
+   type plug
+   slave.pcm "dmixer"
+   }
+
+   pcm.dmixer  {
+       type dmix
+       ipc_key 1024
+       slave {
+           pcm "hw:1,0"
+           period_time 0
+           period_size 1024
+           buffer_size 4096
+           rate 44100
+       }
+       bindings {
+           0 0
+           1 1
+       }
+   }
+
+   ctl.!default {
+       type hw
+       card PCH
+    }
+
+   Here *PCH* is actually a name of sound card, which can be found by typing $> cat /proc/asound/card*/id. dmix is ALSA
+   plugin, which comes with alsa-utils package, it is strongly needed to have and ability to play sounds from various
+   sources at the same time on output.
+
+   More: https://wiki.archlinux.org/index.php/Advanced_Linux_Sound_Architecture
+
+############################################################################################################################
+
+3. To make Clementine player work beside, for example, video with sound from Youtube in Chrome, there was needed to install
+   nessesary packages, as gstreamer, gstreamer0.10-* and ALL related packages - bad, base, good, ugly, etc.
+
+############################################################################################################################
+
+4. In order to get ability to automount some deia devices, like media players, phones and tablets on Android it is convenient
+   to install package called $> sudo pacman -S gvfs-mtp. It is also needed to add launch parameter to .xinitrc, like here,
+   below:
+
+   ...
+   exec dbus-launch i3 # lanch i3 windows manager on X session start
+   ...
+
+############################################################################################################################
+
+5. If program requires building itself from sources, like in my case Octave do, one need to pull sources with something like
+   git, svn, hg ar whatever, then follow developers instructions of how to configure, compile and install, in case of Octave
+   it is needed to run some configuration script in directory you want to get compiled program and then install it with
+   $> make install. Then cd to /bin directory and create symlinks to executable file of program. It is also convenient to
+   create bash script, like one below.
+
+   #/bin/bash
+
+   exec octave --no-gui
+
+   This will take "octave" from /bin and will run it with command line parameter "--no-gui". octave here is a symlink, created
+   with $> cd /bin; ln -s /path/to/octave_run octave. My octave build is located in /opt
+
+############################################################################################################################
+
+6. Network configuration is fairly easy, as i am using static ip address now. Just need to $> cd /etc/netctl/examples/
+   than choose proper one, in my case with static ip - ethernet-static, and copy it in /etc/netctl with a name of phisical
+   network interface. List of available interfaces are available with $> ip link show. In my case interface is called eno1,
+   so in my case i just do #>sudo cp /etc/netctl/examples/ethernet-static /etc/netctl/eno1. Than i have to edit this file
+   to apply my settings ip, dns and other stuff.
+
+############################################################################################################################
+
+7. To mount an external HDD to a regular place, just need to discover it's UUID with $> ls -l /dev/disk/by-uuid. Then create
+   a point for mounting, for example i use $> sudo mkdir /mnt/rjhdd. After that just $> sudo nano /etc/fstab and type like
+   below:
+
+   UUID=C6906E7C906E733B /mnt/rjhdd ntfs-3g uid=1000,gid=1000,umask=007 0 0
+
+   Just change to proper UUID.
+
+############################################################################################################################
+
+8. The easiest way to establish Wi-Fi connection to network is via netctrl. First the psk key must be generated from network
+   password. To to this >$ wifi-menu -o to display available networks. Remember SSID (name) of network. Then type
+   >$ wpa_passphrase D-Link_DIR-850L > psk.conf , where D-Link_DIR-850L is SSID of network and psk.conf is a file, where
+   wpa_passphrase going to store the result. After hit Enter here, password in normal for should be provided. Now open the
+   file, content should look like this:
+
+   network={
+        ssid="D-Link_DIR-850L"
+        #psk="passphrase"
+        psk=10abd6fd085faa0c2f01a3fbce6cbc585afdd9d74611abcc0df98e2fa83d7c71
+        }
+   Now psk could be supplied to netctrl profile config file.
+
+    Description='A simple WPA encrypted wireless connection'
+    Interface=wlp0s20u10u1
+    Connection=wireless
+
+    Security=wpa
+    IP=dhcp
+
+    ESSID='D-Link_DIR-850L'
+    # Prepend hexadecimal keys with \"
+    # If your key starts with ", write it as '""<key>"'
+    # See also: the section on special quoting rules in netctl.profile(5)
+    Key=\"10abd6fd085faa0c2f01a3fbce6cbc585afdd9d74611abcc0df98e2fa83d7c71
+    # Uncomment this if your ssid is hidden
+    #Hidden=yes
+    # Set a priority for automatic profile selection
+    #Priority=10
+
+   For example, we call whis profile home-wifi. To enable it from startup ># netctrl enable home-wifi. To start profile immidiately
+   ># netctrl start home-wifi.
+
+   Another useful tool is wicd. Unfortunately it crashes on my system. Don't know why. Search for wicd on Arch Wiki.
