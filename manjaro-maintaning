@@ -1,4 +1,4 @@
-1. In order to display a name a track playing in Clementine interprocess info exange protocol,
+1. In order to display a name a track playing in Clementine inter process info exchange protocol,
    called *dbus* is used. API to this protocol provided by Python module python-dbus,
    ($> sudo pacman -S python-dbus). The following script
 
@@ -57,19 +57,26 @@
 
    More: https://wiki.archlinux.org/index.php/Advanced_Linux_Sound_Architecture
 
+   PS:
+   Once my sound stopped working, reboots did not help. I user this commands to restore audio:
+   $> killall pulseaudio; rm -r ~/.config/pulse/* ; rm -r ~/.pulse*
+   wait a bit
+   $> pulseaudio -k
+
+
 ############################################################################################################################
 
 3. To make Clementine player work beside, for example, video with sound from Youtube in Chrome, there was needed to install
-   nessesary packages, as gstreamer, gstreamer0.10-* and ALL related packages - bad, base, good, ugly, etc.
+   necessary packages, as gstreamer, gstreamer0.10-* and ALL related packages - bad, base, good, ugly, etc.
 
 ############################################################################################################################
 
-4. In order to get ability to automount some deia devices, like media players, phones and tablets on Android it is convenient
+4. In order to get ability to automount some media devices, like media players, phones and tablets on Android it is convenient
    to install package called $> sudo pacman -S gvfs-mtp. It is also needed to add launch parameter to .xinitrc, like here,
    below:
 
    ...
-   exec dbus-launch i3 # lanch i3 windows manager on X session start
+   exec dbus-launch i3 # launch i3 windows manager on X session start
    ...
 
 ############################################################################################################################
@@ -90,7 +97,7 @@
 ############################################################################################################################
 
 6. Network configuration is fairly easy, as i am using static ip address now. Just need to $> cd /etc/netctl/examples/
-   than choose proper one, in my case with static ip - ethernet-static, and copy it in /etc/netctl with a name of phisical
+   than choose proper one, in my case with static ip - ethernet-static, and copy it in /etc/netctl with a name of physical
    network interface. List of available interfaces are available with $> ip link show. In my case interface is called eno1,
    so in my case i just do #>sudo cp /etc/netctl/examples/ethernet-static /etc/netctl/eno1. Than i have to edit this file
    to apply my settings ip, dns and other stuff.
@@ -108,7 +115,7 @@
 ############################################################################################################################
 
 8. The easiest way to establish Wi-Fi connection to network is via netctrl. First the psk key must be generated from network
-   password. To to this >$ wifi-menu -o to display available networks. Remember SSID (name) of network. Then type
+   password. To do this >$ wifi-menu -o to display available networks. Remember SSID (name) of network. Then type
    >$ wpa_passphrase D-Link_DIR-850L > psk.conf , where D-Link_DIR-850L is SSID of network and psk.conf is a file, where
    wpa_passphrase going to store the result. After hit Enter here, password in normal for should be provided. Now open the
    file, content should look like this:
@@ -137,7 +144,41 @@
     # Set a priority for automatic profile selection
     #Priority=10
 
-   For example, we call whis profile home-wifi. To enable it from startup ># netctrl enable home-wifi. To start profile immidiately
+   For example, we call with profile home-wifi. To enable it from startup ># netctrl enable home-wifi. To start profile immediately
    ># netctrl start home-wifi.
 
    Another useful tool is wicd. Unfortunately it crashes on my system. Don't know why. Search for wicd on Arch Wiki.
+
+############################################################################################################################
+
+9. To burn image of Manjaro to USB drive, simply type ># dd bs=4M if=/path/to/manjaro.iso of=/dev/sd[drive letter]
+
+############################################################################################################################
+
+10. Virtualbox
+
+    - In order to enable using of USB devices in VirtualBox it is nessesary to add your user to a group, which is called @vboxusers@.
+      To do that >$ sudo usermode -a -G vboxusers @username@. Re-login then and USB devices are available in Vbox Devices menu.
+
+    - VB falls into trouble, when trying to install Extension pack, reporting, that passwork was wrong (but is was okay). The walkaround
+      is to use @VBoxManage@.
+      To install new extension pack, example:
+         $> sudo VBoxManage extpack install Oracle_VM_VirtualBox_Extension_Pack-5.0.10-104061.vbox-extpack
+      To remove already installed pack:
+         - list installed packs to find name of pack @ VBoxManage list extpacks @
+         - remove pack with @ sudo VBoxManage extpack uninstall "Oracle VM VirtualBox Extension Pack" @
+      Removing old pack is needed action, before installing newer version.
+
+      There is sometimes a problem with insertion an iso image of VirtualBoxGuestAdditions.iso. The fastes way to resolve is:
+            - locate where the *.iso is, by default on Windows host it's here @ C:\Program Files\Oracle\VirtualBox\VBoxGuestAdditions.iso @
+            - copy that to guest system, for example via Google Drive
+            - then $> sudo mkdir /media/GuestAdditionsISO, $> sudo mount -o loop path/to/VBoxGuestAdditions.iso /media/GuestAdditionsISO
+            - $> sudo ./VBoxLinuxAdditions.run - after that, guest additions are installed. This script is also capable to remove old version
+              of guest additions in system if any
+
+      Shared folders (in linux guest) https://forums.virtualbox.org/viewtopic.php?t=15868
+             - first create a shared folder in virtual machine settings, name is for example share
+             - then create a folder, where shared folder should be mounted, name is for example ~/host
+             - to mount folder with capability to manipulate data and set user and group different, that root, type this
+               $> sudo mount -t vboxsf -o rw,uid=1000,gid=1000 share ~/host
+             - tip: mount command could be injected in startup script, like /etc/local.rc
